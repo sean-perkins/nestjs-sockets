@@ -1,0 +1,84 @@
+<html>
+
+<head>
+    <script src="socket.io.js"></script>
+    <style>
+        #connectStatus {
+            font-size: 11;
+        }
+        .connected {
+            color: green;
+        }
+        .disconnected {
+            color: red;
+        }
+    </style>
+    <script>
+        const socket = io('http://localhost:81');
+
+        let lastSync;
+        let syncInterval;
+
+        socket.on('connect', function () {
+            syncInterval = setInterval(() => {
+                socket.emit('sync', {
+                    lastSync
+                });
+            }, 1000);
+            updateConnectStatus('Connected');
+        });
+
+        socket.on('events', (data) => {
+            switch(event.type) {
+                case 'message':
+                    appendMessage(data.msg);
+                    break;
+                }
+            lastSync = Date.now();
+
+        });
+        socket.on('exception', function (data) {
+            console.log('event', data);
+        });
+        socket.on('disconnect', function () {
+            updateConnectStatus('Disconnected');
+            clearInterval(syncInterval);
+        });
+
+        function handleSubmit() {
+            const msgBox = document.getElementById('message');
+            const msg = msgBox.value;
+            if (msg && msg.trim().length > 0) {
+                socket.emit('message', {
+                    msg: msg
+                });
+                msgBox.value = '';
+            }
+            else {
+                console.error('No message');
+            }
+        }
+
+        function appendMessage(newMsg) {
+            const msgs = document.getElementById('messages');
+            const msg = document.createElement('div');
+            msg.innerHTML = `<p>${newMsg}</p>`;
+            msgs.appendChild(msg);
+        }
+
+        function updateConnectStatus(status) {
+            const statusEl = document.getElementById('connectStatus');
+            statusEl.innerHTML = status;
+            statusEl.className = status.toLowerCase();
+        }
+    </script>
+</head>
+
+<body>
+    <div id="messages"></div>
+    <textarea id="message"></textarea>
+    <button type="button" onclick="handleSubmit()">Send</button>
+    <p id="connectStatus"></p>
+</body>
+
+</html>
